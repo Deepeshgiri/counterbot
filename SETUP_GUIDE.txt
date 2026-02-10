@@ -1,0 +1,71 @@
+# 🚀 DISCORD BOT QUICK START GUIDE
+# Follow these steps to get your bot running!
+
+## STEP 1: Get Your Discord Bot Token
+# 1. Go to: https://discord.com/developers/applications
+# 2. Click "New Application" → Give it a name → Create
+# 3. Go to "Bot" section on the left
+# 4. Click "Reset Token" → Copy the token
+# 5. Paste it below in DISCORD_TOKEN=
+
+## STEP 2: Enable Required Intents
+# Still in the Bot section:
+# 1. Scroll down to "Privileged Gateway Intents"
+# 2. Enable these TWO intents:
+#    ✅ SERVER MEMBERS INTENT
+#    ✅ MESSAGE CONTENT INTENT
+# 3. Click "Save Changes"
+
+## STEP 3: Invite Bot to Your Server
+# 1. Go to "OAuth2" → "URL Generator" on the left
+# 2. Select scopes:
+#    ✅ bot
+#    ✅ applications.commands
+# 3. Select permissions:
+#    ✅ Read Messages/View Channels
+#    ✅ Send Messages
+#    ✅ Manage Roles
+# 4. Copy the generated URL at the bottom
+# 5. Paste in browser → Select your server → Authorize
+
+## STEP 4: Configure Your Bot
+# Replace YOUR_BOT_TOKEN_HERE below with your actual token from Step 1
+
+DISCORD_TOKEN=YOUR_BOT_TOKEN_HERE
+
+# OPTIONAL: For faster command testing (get your server ID by right-clicking server name)
+# GUILD_ID=YOUR_SERVER_ID_HERE
+
+# Bot Settings
+DEFAULT_COOLDOWN=10
+
+## STEP 5: Run the Bot
+# In terminal, run: npm start
+
+## STEP 6: Set Up the Bot (In Discord)
+# Use these commands in your Discord server:
+
+# 1. Add a channel to track:
+#    /setup-channel add channel:#general
+
+# 2. Add a word to track:
+#    /setup-word add word:owo aliases:uwu,OwO cooldown:5
+
+# 3. Set up role rewards (create roles first in Server Settings):
+#    /setup-role add word:owo threshold:10 role:@OwO Beginner
+#    /setup-role add word:owo threshold:50 role:@OwO Expert
+
+# 4. Set leaderboard channel:
+#    /setup-leaderboard channel:#leaderboards
+
+# 5. View leaderboard:
+#    /leaderboard type:total
+
+## TROUBLESHOOTING
+# ❌ "Invalid Form Body" error → Check DISCORD_TOKEN is correct
+# ❌ Commands don't appear → Wait 5 minutes or add GUILD_ID for instant registration
+# ❌ "Missing Permissions" → Make sure bot role is ABOVE reward roles in Server Settings
+# ❌ Words not counting → Check channel is tracked with /setup-channel list
+
+## NEED HELP?
+# Check README.md for full documentation!

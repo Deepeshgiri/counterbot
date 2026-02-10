@@ -1,0 +1,23 @@
+{
+    "USER_ID_123456789": {
+        "discord_id": "USER_ID_123456789",
+        "daily_count": 5,
+        "weekly_count": 23,
+        "monthly_count": 87,
+        "total_count": 342,
+        "last_counted": {
+            "owo": 1707584234567,
+            "hello": 1707584240123
+        }
+    },
+    "USER_ID_987654321": {
+        "discord_id": "USER_ID_987654321",
+        "daily_count": 12,
+        "weekly_count": 45,
+        "monthly_count": 156,
+        "total_count": 789,
+        "last_counted": {
+            "owo": 1707584250000
+        }
+    }
+}

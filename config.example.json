@@ -1,0 +1,21 @@
+{
+    "enabled_channels": [],
+    "tracked_words": {
+        "owo": {
+            "aliases": [
+                "uwu",
+                "OwO"
+            ],
+            "cooldown": 5
+        }
+    },
+    "role_mappings": {
+        "owo": {
+            "10": "ROLE_ID_FOR_10_COUNTS",
+            "50": "ROLE_ID_FOR_50_COUNTS",
+            "100": "ROLE_ID_FOR_100_COUNTS"
+        }
+    },
+    "cooldown_seconds": 10,
+    "leaderboard_channel_id": null
+}

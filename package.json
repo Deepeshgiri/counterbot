@@ -1,0 +1,27 @@
+{
+  "name": "discord-word-tracker-bot",
+  "version": "1.0.0",
+  "description": "Production-ready Discord bot for tracking configurable words with role rewards and leaderboards",
+  "main": "index.js",
+  "scripts": {
+    "start": "node index.js",
+    "dev": "node index.js"
+  },
+  "keywords": [
+    "discord",
+    "bot",
+    "tracker",
+    "leaderboard"
+  ],
+  "author": "",
+  "license": "MIT",
+  "dependencies": {
+    "discord.js": "^14.14.1",
+    "dotenv": "^16.4.1",
+    "node-cron": "^3.0.3",
+    "chalk": "^4.1.2"
+  },
+  "engines": {
+    "node": ">=16.9.0"
+  }
+}
