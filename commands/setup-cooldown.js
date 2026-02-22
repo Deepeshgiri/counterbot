@@ -16,6 +16,7 @@ module.exports = {
         ),
 
     async execute(interaction) {
+        await interaction.deferReply({ flags: 64 });
         const seconds = interaction.options.getInteger('seconds');
         const guildId = interaction.guild.id;
         const config = await DataManager.getConfig(guildId);
@@ -23,9 +24,10 @@ module.exports = {
         config.cooldown_seconds = seconds;
         await DataManager.saveConfig(guildId, config);
 
-        await interaction.reply({
+        await interaction.editReply({
             content: `✅ Global cooldown set to **${seconds} seconds**.\n\n*Note: Individual words can have custom cooldowns set via /setup-word add.*`,
-            ephemeral: true
+            flags: 64
         });
     }
 };
+

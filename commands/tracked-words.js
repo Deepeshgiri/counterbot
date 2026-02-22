@@ -8,13 +8,14 @@ module.exports = {
         .setDefaultMemberPermissions(null),
 
     async execute(interaction) {
+        await interaction.deferReply({ flags: 64 });
         const guildId = interaction.guild.id;
         const config = await DataManager.getConfig(guildId);
 
         if (Object.keys(config.tracked_words).length === 0) {
-            return interaction.reply({
+            return interaction.editReply({
                 content: '📋 No words are currently being tracked in this server.',
-                ephemeral: true
+                flags: 64
             });
         }
 
@@ -31,9 +32,10 @@ module.exports = {
             })
             .join('\n');
 
-        await interaction.reply({
+        await interaction.editReply({
             content: `📋 **Tracked Words:**\n${wordList}`,
-            ephemeral: true
+            flags: 64
         });
     }
 };
+

@@ -30,33 +30,37 @@ module.exports = {
         ),
 
     async execute(interaction) {
-        await interaction.deferReply();
+        try {
+            await interaction.deferReply();
 
-        const type = interaction.options.getString('type');
-        const scope = interaction.options.getString('scope') || 'guild';
-        const guildId = interaction.guild.id;
+            const type = interaction.options.getString('type');
+            const scope = interaction.options.getString('scope') || 'guild';
+            const guildId = interaction.guild.id;
 
-        let users;
-        let scopeLabel;
+            let users;
+            let scopeLabel;
 
-        if (scope === 'global') {
-            // Get global statistics
-            users = await DataManager.getGlobalUsers();
-            scopeLabel = 'Global (All Servers)';
-        } else {
-            // Get guild-specific statistics
-            users = await DataManager.getUsers(guildId);
-            scopeLabel = interaction.guild.name;
+            if (scope === 'global') {
+                users = await DataManager.getGlobalUsers();
+                scopeLabel = 'Global (All Servers)';
+            } else {
+                users = await DataManager.getUsers(guildId);
+                scopeLabel = interaction.guild.name;
+            }
+
+            const embed = await LeaderboardUtils.generateLeaderboard(
+                interaction.client,
+                users,
+                type,
+                scopeLabel,
+                scope
+            );
+
+            await interaction.editReply({ embeds: [embed] });
+        } catch (error) {
+            if (interaction.deferred || interaction.replied) {
+                await interaction.editReply({ content: `❌ Error: ${error.message}` }).catch(() => {});
+            }
         }
-
-        const embed = await LeaderboardUtils.generateLeaderboard(
-            interaction.client,
-            users,
-            type,
-            scopeLabel,
-            scope
-        );
-
-        await interaction.editReply({ embeds: [embed] });
     }
 };

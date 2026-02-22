@@ -48,6 +48,7 @@ module.exports = {
         ),
 
     async execute(interaction) {
+        await interaction.deferReply({ flags: 64 });
         const subcommand = interaction.options.getSubcommand();
 
         if (subcommand === 'add') {
@@ -68,9 +69,9 @@ module.exports = {
         const config = await DataManager.getConfig(guildId);
 
         if (config.tracked_words[word]) {
-            return interaction.reply({
+            return interaction.editReply({
                 content: `❌ Word "${word}" is already being tracked.`,
-                ephemeral: true
+                flags: 64
             });
         }
 
@@ -82,18 +83,18 @@ module.exports = {
         // Check for alias conflicts
         for (const [existingWord, existingConfig] of Object.entries(config.tracked_words)) {
             if (aliases.includes(existingWord)) {
-                return interaction.reply({
+                return interaction.editReply({
                     content: `❌ Alias "${existingWord}" conflicts with an existing tracked word.`,
-                    ephemeral: true
+                    flags: 64
                 });
             }
 
             if (existingConfig.aliases) {
                 for (const alias of aliases) {
                     if (existingConfig.aliases.includes(alias)) {
-                        return interaction.reply({
+                        return interaction.editReply({
                             content: `❌ Alias "${alias}" is already used by word "${existingWord}".`,
-                            ephemeral: true
+                            flags: 64
                         });
                     }
                 }
@@ -115,9 +116,9 @@ module.exports = {
             response += `\nCooldown: ${cooldown}s`;
         }
 
-        await interaction.reply({
+        await interaction.editReply({
             content: response,
-            ephemeral: true
+            flags: 64
         });
     },
 
@@ -127,9 +128,9 @@ module.exports = {
         const config = await DataManager.getConfig(guildId);
 
         if (!config.tracked_words[word]) {
-            return interaction.reply({
+            return interaction.editReply({
                 content: `❌ Word "${word}" is not being tracked.`,
-                ephemeral: true
+                flags: 64
             });
         }
 
@@ -142,9 +143,9 @@ module.exports = {
 
         await DataManager.saveConfig(guildId, config);
 
-        await interaction.reply({
+        await interaction.editReply({
             content: `✅ Stopped tracking word: **${word}**`,
-            ephemeral: true
+            flags: 64
         });
     },
 
@@ -153,9 +154,9 @@ module.exports = {
         const config = await DataManager.getConfig(guildId);
 
         if (Object.keys(config.tracked_words).length === 0) {
-            return interaction.reply({
+            return interaction.editReply({
                 content: '📋 No words are currently being tracked.',
-                ephemeral: true
+                flags: 64
             });
         }
 
@@ -172,9 +173,10 @@ module.exports = {
             })
             .join('\n');
 
-        await interaction.reply({
+        await interaction.editReply({
             content: `📋 **Tracked Words:**\n${wordList}`,
-            ephemeral: true
+            flags: 64
         });
     }
 };
+

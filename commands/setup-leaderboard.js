@@ -14,6 +14,7 @@ module.exports = {
         ),
 
     async execute(interaction) {
+        await interaction.deferReply({ flags: 64 });
         const channel = interaction.options.getChannel('channel');
         const guildId = interaction.guild.id;
         const config = await DataManager.getConfig(guildId);
@@ -21,9 +22,10 @@ module.exports = {
         config.leaderboard_channel_id = channel.id;
         await DataManager.saveConfig(guildId, config);
 
-        await interaction.reply({
+        await interaction.editReply({
             content: `✅ Automatic leaderboards will be posted to ${channel}.\n\n**Schedule:**\n• Daily: Midnight UTC\n• Weekly: Start of week (Monday)\n• Monthly: 1st of month`,
-            ephemeral: true
+            flags: 64
         });
     }
 };
+

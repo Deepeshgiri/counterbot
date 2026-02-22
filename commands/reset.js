@@ -20,12 +20,11 @@ module.exports = {
         ),
 
     async execute(interaction) {
-        await interaction.deferReply({ ephemeral: true });
-
-        const type = interaction.options.getString('type');
-        const guildId = interaction.guild.id;
-
         try {
+            await interaction.deferReply({ flags: 64 });
+
+            const type = interaction.options.getString('type');
+            const guildId = interaction.guild.id;
             const config = await DataManager.getConfig(guildId);
             const users = await DataManager.getUsers(guildId);
 
@@ -50,9 +49,11 @@ module.exports = {
                 content: `✅ Successfully reset **${type}** counts for all users in this server.`
             });
         } catch (error) {
-            await interaction.editReply({
-                content: `❌ Failed to reset counts: ${error.message}`
-            });
+            if (interaction.deferred || interaction.replied) {
+                await interaction.editReply({
+                    content: `❌ Failed to reset counts: ${error.message}`
+                }).catch(() => {});
+            }
         }
     }
 };

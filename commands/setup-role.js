@@ -54,6 +54,7 @@ module.exports = {
         ),
 
     async execute(interaction) {
+        await interaction.deferReply({ flags: 64 });
         const subcommand = interaction.options.getSubcommand();
 
         if (subcommand === 'add') {
@@ -75,18 +76,18 @@ module.exports = {
 
         // Check if word is tracked
         if (!config.tracked_words[word]) {
-            return interaction.reply({
+            return interaction.editReply({
                 content: `❌ Word "${word}" is not being tracked. Add it first with /setup-word add.`,
-                ephemeral: true
+                flags: 64
             });
         }
 
         // Check bot can assign this role
         const botMember = interaction.guild.members.me;
         if (role.position >= botMember.roles.highest.position) {
-            return interaction.reply({
+            return interaction.editReply({
                 content: `❌ Cannot assign role ${role} - it's higher than my highest role.\n\n**Role Hierarchy Issue:** Move my role above ${role} in Server Settings → Roles.`,
-                ephemeral: true
+                flags: 64
             });
         }
 
@@ -101,9 +102,9 @@ module.exports = {
         config.role_mappings[word][threshold] = role.id;
         await DataManager.saveConfig(guildId, config);
 
-        await interaction.reply({
+        await interaction.editReply({
             content: `✅ Role reward configured:\n**Word:** ${word}\n**Threshold:** ${threshold} total counts\n**Role:** ${role}`,
-            ephemeral: true
+            flags: 64
         });
     },
 
@@ -115,9 +116,9 @@ module.exports = {
         const config = await DataManager.getConfig(guildId);
 
         if (!config.role_mappings || !config.role_mappings[word] || !config.role_mappings[word][threshold]) {
-            return interaction.reply({
+            return interaction.editReply({
                 content: `❌ No role mapping found for word "${word}" at threshold ${threshold}.`,
-                ephemeral: true
+                flags: 64
             });
         }
 
@@ -130,9 +131,9 @@ module.exports = {
 
         await DataManager.saveConfig(guildId, config);
 
-        await interaction.reply({
+        await interaction.editReply({
             content: `✅ Removed role mapping for **${word}** at threshold **${threshold}**.`,
-            ephemeral: true
+            flags: 64
         });
     },
 
@@ -141,9 +142,9 @@ module.exports = {
         const config = await DataManager.getConfig(guildId);
 
         if (!config.role_mappings || Object.keys(config.role_mappings).length === 0) {
-            return interaction.reply({
+            return interaction.editReply({
                 content: '📋 No role mappings configured.',
-                ephemeral: true
+                flags: 64
             });
         }
 
@@ -157,9 +158,10 @@ module.exports = {
             })
             .join('\n\n');
 
-        await interaction.reply({
+        await interaction.editReply({
             content: `📋 **Role Reward Mappings:**\n\n${mappingList}`,
-            ephemeral: true
+            flags: 64
         });
     }
 };
+

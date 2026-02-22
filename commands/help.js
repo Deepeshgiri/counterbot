@@ -18,6 +18,8 @@ module.exports = {
         ),
 
     async execute(interaction) {
+        await interaction.deferReply({ flags: 64 });
+        
         const topic = interaction.options.getString('topic');
 
         if (!topic) {
@@ -69,7 +71,7 @@ module.exports = {
             .setFooter({ text: 'All admin commands require Administrator permission • Data is tracked per server' })
             .setTimestamp();
 
-        await interaction.reply({ embeds: [embed], ephemeral: true });
+        await interaction.editReply({ embeds: [embed] });
     },
 
     async showQuickStart(interaction) {
@@ -120,7 +122,7 @@ module.exports = {
             )
             .setFooter({ text: 'Need more help? Use /help topic:Troubleshooting' });
 
-        await interaction.reply({ embeds: [embed], ephemeral: true });
+        await interaction.editReply({ embeds: [embed] });
     },
 
     async showSetupCommands(interaction) {
@@ -180,7 +182,7 @@ module.exports = {
                 }
             );
 
-        await interaction.reply({ embeds: [embed], ephemeral: true });
+        await interaction.editReply({ embeds: [embed] });
     },
 
     async showHowItWorks(interaction) {
@@ -250,7 +252,7 @@ module.exports = {
                 }
             );
 
-        await interaction.reply({ embeds: [embed], ephemeral: true });
+        await interaction.editReply({ embeds: [embed] });
     },
 
     async showTroubleshooting(interaction) {
@@ -317,6 +319,6 @@ module.exports = {
                 }
             );
 
-        await interaction.reply({ embeds: [embed], ephemeral: true });
+        await interaction.editReply({ embeds: [embed] });
     }
 };
