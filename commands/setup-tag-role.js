@@ -72,8 +72,22 @@ module.exports = {
 
         await DataManager.saveConfig(guildId, config);
 
+        // Auto-assign role to all members with server tag
+        const members = await interaction.guild.members.fetch();
+        let assigned = 0;
+        
+        for (const [, member] of members) {
+            const primaryGuild = member.user.primaryGuild;
+            const hasTag = primaryGuild?.identityGuildId === guildId && primaryGuild?.identityEnabled;
+            
+            if (hasTag && !member.roles.cache.has(role.id)) {
+                await member.roles.add(role).catch(() => {});
+                assigned++;
+            }
+        }
+        
         await interaction.editReply({
-            content: `✅ Tag-role configured!\n**Role:** ${role}\n\nUsers with this server's tag in their profile will automatically get this role.`
+            content: `✅ Tag-role configured!\n**Role:** ${role}\n**Auto-assigned:** ${assigned} members\n\nUsers with this server as their primary guild will automatically get this role.`
         });
     },
 
@@ -106,7 +120,7 @@ module.exports = {
         }
 
         await interaction.editReply({
-            content: `📋 **Tag-Role Configuration:**\n**Role:** <@&${config.tag_role.roleId}>\n\nUsers with this server's tag will get this role.`
+            content: `📋 **Tag-Role Configuration:**\n**Role:** <@&${config.tag_role.roleId}>\n\nUsers with this server as their primary guild get this role.`
         });
     }
 };

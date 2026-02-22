@@ -13,6 +13,9 @@ module.exports = {
             const guildId = message.guild.id;
             const config = await DataManager.getConfig(guildId);
 
+            // Check tag-role assignment
+            await this.checkTagRole(message, config);
+
             // Check if channel is tracked
             if (!config.enabled_channels.includes(message.channel.id)) {
                 return;
@@ -36,6 +39,35 @@ module.exports = {
             }
         } catch (error) {
             Logger.error('Error processing message', error);
+        }
+    },
+
+    async checkTagRole(message, config) {
+        if (!config?.tag_role) return;
+
+        const { roleId } = config.tag_role;
+        if (!roleId) return;
+
+        const member = message.member;
+        const role = message.guild.roles.cache.get(roleId);
+        
+        if (!role) return;
+
+        // Check if user has this guild set as primary guild
+        const primaryGuild = message.author.primaryGuild;
+        const hasTag = primaryGuild?.identityGuildId === message.guild.id && primaryGuild?.identityEnabled;
+        const hasRole = member.roles.cache.has(roleId);
+
+        // Add role if has tag but not role
+        if (hasTag && !hasRole) {
+            await member.roles.add(role).catch(() => {});
+            Logger.success(`Assigned ${role.name} to ${member.user.tag} for wearing server tag [${primaryGuild.tag}]`);
+        }
+
+        // Remove role if has role but not tag
+        if (!hasTag && hasRole) {
+            await member.roles.remove(role).catch(() => {});
+            Logger.success(`Removed ${role.name} from ${member.user.tag} for removing server tag`);
         }
     },
 
