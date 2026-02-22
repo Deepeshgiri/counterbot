@@ -4,12 +4,18 @@ const DataManager = require('../utils/dataManager');
 module.exports = {
     data: new SlashCommandBuilder()
         .setName('setup-tag-role')
-        .setDescription('Configure auto-role for users wearing server tag')
+        .setDescription('Configure auto-role for users wearing a specific tag')
         .setDefaultMemberPermissions(PermissionFlagsBits.Administrator)
         .addSubcommand(subcommand =>
             subcommand
                 .setName('set')
-                .setDescription('Set role for users with server tag')
+                .setDescription('Set role for users with a specific tag')
+                .addStringOption(option =>
+                    option
+                        .setName('tag')
+                        .setDescription('Tag to check in nickname (example: [ABC])')
+                        .setRequired(true)
+                )
                 .addRoleOption(option =>
                     option
                         .setName('role')
@@ -31,7 +37,7 @@ module.exports = {
     async execute(interaction) {
         try {
             await interaction.deferReply({ flags: 64 });
-        } catch (error) {
+        } catch {
             return;
         }
 
@@ -47,35 +53,41 @@ module.exports = {
     },
 
     async setTagRole(interaction) {
+        const tag = interaction.options.getString('tag').trim();
         const role = interaction.options.getRole('role');
         const guildId = interaction.guild.id;
-        const guild = await interaction.guild.fetch();
-        
-        // Check for clan/server tag in guild properties
-        const serverTag = guild.clan?.tag ? `[${guild.clan.tag}]` : null;
-        
-        if (!serverTag) {
+
+        if (!tag) {
             return interaction.editReply({
-                content: '❌ This server does not have a server tag set. Please set a server tag in Server Settings → Overview → Server Tag.'
+                content: '❌ You must provide a valid tag.'
             });
         }
 
         const botMember = interaction.guild.members.me;
-        if (role.position >= botMember.roles.highest.position) {
+
+        if (!botMember.permissions.has(PermissionFlagsBits.ManageRoles)) {
             return interaction.editReply({
-                content: `❌ Cannot assign role ${role} - it's higher than my highest role.\n\n**Role Hierarchy Issue:** Move my role above ${role} in Server Settings → Roles.`
+                content: '❌ I need the **Manage Roles** permission.'
+            });
+        }
+
+        if (role.comparePositionTo(botMember.roles.highest) >= 0) {
+            return interaction.editReply({
+                content: `❌ My role must be higher than ${role}.`
             });
         }
 
         const config = await DataManager.getConfig(guildId);
+
         config.tag_role = {
-            tag: serverTag,
+            tag,
             roleId: role.id
         };
+
         await DataManager.saveConfig(guildId, config);
 
         await interaction.editReply({
-            content: `✅ Tag-role configured!\n**Server Tag:** ${serverTag}\n**Role:** ${role}\n\nUsers with "${serverTag}" in their nickname will automatically get this role.`
+            content: `✅ Tag-role configured!\n**Tag:** ${tag}\n**Role:** ${role}\n\nUsers with "${tag}" in their nickname will automatically get this role.`
         });
     },
 
@@ -83,7 +95,7 @@ module.exports = {
         const guildId = interaction.guild.id;
         const config = await DataManager.getConfig(guildId);
 
-        if (!config.tag_role) {
+        if (!config?.tag_role) {
             return interaction.editReply({
                 content: '❌ No tag-role configuration found.'
             });
@@ -101,7 +113,7 @@ module.exports = {
         const guildId = interaction.guild.id;
         const config = await DataManager.getConfig(guildId);
 
-        if (!config.tag_role) {
+        if (!config?.tag_role) {
             return interaction.editReply({
                 content: '📋 No tag-role configuration set.'
             });
