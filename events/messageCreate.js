@@ -63,7 +63,7 @@ module.exports = {
             await RoleManager.checkAndAssignRoles(
                 message.guild,
                 userId,
-                updatedUser.total_count,
+                updatedUser,
                 word,
                 config.role_mappings
             );

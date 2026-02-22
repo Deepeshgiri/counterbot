@@ -19,7 +19,7 @@ module.exports = {
                 .addIntegerOption(option =>
                     option
                         .setName('threshold')
-                        .setDescription('Total count threshold')
+                        .setDescription('Count threshold')
                         .setRequired(true)
                         .setMinValue(1)
                 )
@@ -28,6 +28,18 @@ module.exports = {
                         .setName('role')
                         .setDescription('Role to assign')
                         .setRequired(true)
+                )
+                .addStringOption(option =>
+                    option
+                        .setName('period')
+                        .setDescription('Count period (default: total)')
+                        .setRequired(false)
+                        .addChoices(
+                            { name: 'Daily', value: 'daily' },
+                            { name: 'Weekly', value: 'weekly' },
+                            { name: 'Monthly', value: 'monthly' },
+                            { name: 'Total (All-Time)', value: 'total' }
+                        )
                 )
         )
         .addSubcommand(subcommand =>
@@ -70,6 +82,7 @@ module.exports = {
         const word = interaction.options.getString('word').toLowerCase();
         const threshold = interaction.options.getInteger('threshold');
         const role = interaction.options.getRole('role');
+        const period = interaction.options.getString('period') || 'total';
 
         const guildId = interaction.guild.id;
         const config = await DataManager.getConfig(guildId);
@@ -77,8 +90,7 @@ module.exports = {
         // Check if word is tracked
         if (!config.tracked_words[word]) {
             return interaction.editReply({
-                content: `❌ Word "${word}" is not being tracked. Add it first with /setup-word add.`,
-                flags: 64
+                content: `❌ Word "${word}" is not being tracked. Add it first with /setup-word add.`
             });
         }
 
@@ -86,8 +98,7 @@ module.exports = {
         const botMember = interaction.guild.members.me;
         if (role.position >= botMember.roles.highest.position) {
             return interaction.editReply({
-                content: `❌ Cannot assign role ${role} - it's higher than my highest role.\n\n**Role Hierarchy Issue:** Move my role above ${role} in Server Settings → Roles.`,
-                flags: 64
+                content: `❌ Cannot assign role ${role} - it's higher than my highest role.\n\n**Role Hierarchy Issue:** Move my role above ${role} in Server Settings → Roles.`
             });
         }
 
@@ -99,12 +110,12 @@ module.exports = {
             config.role_mappings[word] = {};
         }
 
-        config.role_mappings[word][threshold] = role.id;
+        const key = `${period}_${threshold}`;
+        config.role_mappings[word][key] = { roleId: role.id, period, threshold };
         await DataManager.saveConfig(guildId, config);
 
         await interaction.editReply({
-            content: `✅ Role reward configured:\n**Word:** ${word}\n**Threshold:** ${threshold} total counts\n**Role:** ${role}`,
-            flags: 64
+            content: `✅ Role reward configured:\n**Word:** ${word}\n**Period:** ${period}\n**Threshold:** ${threshold} counts\n**Role:** ${role}`
         });
     },
 
@@ -143,24 +154,32 @@ module.exports = {
 
         if (!config.role_mappings || Object.keys(config.role_mappings).length === 0) {
             return interaction.editReply({
-                content: '📋 No role mappings configured.',
-                flags: 64
+                content: '📋 No role mappings configured.'
             });
         }
 
         const mappingList = Object.entries(config.role_mappings)
             .map(([word, thresholds]) => {
                 const thresholdList = Object.entries(thresholds)
-                    .sort((a, b) => parseInt(a[0]) - parseInt(b[0]))
-                    .map(([threshold, roleId]) => `  ${threshold} → <@&${roleId}>`)
+                    .sort((a, b) => {
+                        const aData = typeof b[1] === 'object' ? b[1].threshold : parseInt(a[0]);
+                        const bData = typeof b[1] === 'object' ? b[1].threshold : parseInt(b[0]);
+                        return aData - bData;
+                    })
+                    .map(([key, value]) => {
+                        if (typeof value === 'object') {
+                            return `  [${value.period}] ${value.threshold} → <@&${value.roleId}>`;
+                        } else {
+                            return `  [total] ${key} → <@&${value}>`;
+                        }
+                    })
                     .join('\n');
                 return `**${word}:**\n${thresholdList}`;
             })
             .join('\n\n');
 
         await interaction.editReply({
-            content: `📋 **Role Reward Mappings:**\n\n${mappingList}`,
-            flags: 64
+            content: `📋 **Role Reward Mappings:**\n\n${mappingList}`
         });
     }
 };

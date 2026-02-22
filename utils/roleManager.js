@@ -7,7 +7,7 @@ class RoleManager {
     /**
      * Check and assign roles based on user count
      */
-    static async checkAndAssignRoles(guild, userId, totalCount, word, roleMappings) {
+    static async checkAndAssignRoles(guild, userId, user, word, roleMappings) {
         try {
             const member = await guild.members.fetch(userId);
 
@@ -16,22 +16,21 @@ class RoleManager {
             }
 
             const mappings = roleMappings[word];
-            const sortedThresholds = Object.entries(mappings)
-                .map(([threshold, roleId]) => ({ threshold: parseInt(threshold), roleId }))
-                .sort((a, b) => b.threshold - a.threshold);
 
-            // Find highest threshold user qualifies for
-            let qualifiedRole = null;
-            for (const { threshold, roleId } of sortedThresholds) {
-                if (totalCount >= threshold) {
-                    qualifiedRole = { threshold, roleId };
-                    break;
+            for (const [key, value] of Object.entries(mappings)) {
+                let roleData, count;
+                
+                if (typeof value === 'object') {
+                    roleData = value;
+                    count = user[`${roleData.period}_count`];
+                } else {
+                    roleData = { roleId: value, period: 'total', threshold: parseInt(key) };
+                    count = user.total_count;
                 }
-            }
 
-            // Assign qualified role if not already assigned
-            if (qualifiedRole && !member.roles.cache.has(qualifiedRole.roleId)) {
-                await this.assignRole(member, qualifiedRole.roleId, qualifiedRole.threshold);
+                if (count >= roleData.threshold && !member.roles.cache.has(roleData.roleId)) {
+                    await this.assignRole(member, roleData.roleId, roleData.threshold);
+                }
             }
         } catch (error) {
             Logger.error(`Failed to check/assign roles for user ${userId}`, error);
