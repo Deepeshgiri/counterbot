@@ -5,64 +5,83 @@ const RoleManager = require('./roleManager');
 const Logger = require('./logger');
 
 /**
- * Automatic leaderboard posting and reset scheduler (guild-aware)
+ * Automatic leaderboard posting and reset scheduler (guild-aware with timezone support)
  */
 class Scheduler {
     constructor(client) {
         this.client = client;
-        this.jobs = [];
+        this.jobs = new Map();
     }
 
     /**
      * Start all scheduled tasks
      */
     start() {
-        // Daily reset at midnight UTC
-        const dailyJob = cron.schedule('0 0 * * *', async () => {
-            Logger.info('Running daily reset...');
-            await this.postLeaderboards('daily');
-            await this.resetAllGuilds('daily');
-        }, {
-            timezone: 'UTC'
+        // Run every minute to check if any guild needs reset
+        const checkJob = cron.schedule('* * * * *', async () => {
+            await this.checkGuildResets();
         });
 
-        // Weekly reset at Monday midnight UTC
-        const weeklyJob = cron.schedule('0 0 * * 1', async () => {
-            Logger.info('Running weekly reset...');
-            await this.postLeaderboards('weekly');
-            await this.resetAllGuilds('weekly');
-        }, {
-            timezone: 'UTC'
-        });
-
-        // Monthly reset at 1st of month midnight UTC
-        const monthlyJob = cron.schedule('0 0 1 * *', async () => {
-            Logger.info('Running monthly reset...');
-            await this.postLeaderboards('monthly');
-            await this.resetAllGuilds('monthly');
-        }, {
-            timezone: 'UTC'
-        });
-
-        this.jobs.push(dailyJob, weeklyJob, monthlyJob);
-        Logger.success('Scheduler started with daily, weekly, and monthly tasks');
+        this.jobs.set('check', checkJob);
+        Logger.success('Scheduler started with per-guild timezone support');
     }
 
     /**
-     * Reset counts for all guilds
+     * Check if any guild needs reset based on their timezone
      */
-    async resetAllGuilds(type) {
+    async checkGuildResets() {
         try {
             const guildIds = await DataManager.getAllGuildIds();
+            const now = new Date();
 
             for (const guildId of guildIds) {
-                await this.removeRolesForReset(guildId, type);
-                await DataManager.resetCounts(guildId, type);
-            }
+                const config = await DataManager.getConfig(guildId);
+                const timezone = config.timezone || 'UTC';
 
-            Logger.success(`Reset ${type} counts for ${guildIds.length} guilds`);
+                const guildTime = new Date(now.toLocaleString('en-US', { timeZone: timezone }));
+                const hour = guildTime.getHours();
+                const minute = guildTime.getMinutes();
+                const day = guildTime.getDate();
+                const dayOfWeek = guildTime.getDay();
+
+                // Check if it's midnight (00:00)
+                if (hour === 0 && minute === 0) {
+                    // Daily reset
+                    await this.resetGuild(guildId, 'daily');
+
+                    // Weekly reset (Monday)
+                    if (dayOfWeek === 1) {
+                        await this.resetGuild(guildId, 'weekly');
+                    }
+
+                    // Monthly reset (1st day)
+                    if (day === 1) {
+                        await this.resetGuild(guildId, 'monthly');
+                    }
+                }
+            }
         } catch (error) {
-            Logger.error(`Failed to reset ${type} counts`, error);
+            Logger.error('Failed to check guild resets', error);
+        }
+    }
+
+    /**
+     * Reset a specific guild
+     */
+    async resetGuild(guildId, type) {
+        try {
+            const guild = this.client.guilds.cache.get(guildId);
+            if (!guild) return;
+
+            Logger.info(`Running ${type} reset for guild ${guild.name}...`);
+
+            await this.postLeaderboard(guildId, type);
+            await this.removeRolesForReset(guildId, type);
+            await DataManager.resetCounts(guildId, type);
+
+            Logger.success(`Completed ${type} reset for guild ${guild.name}`);
+        } catch (error) {
+            Logger.error(`Failed to reset guild ${guildId}`, error);
         }
     }
 
@@ -96,50 +115,39 @@ class Scheduler {
     }
 
     /**
-     * Post leaderboards to all configured channels
+     * Post leaderboard to a specific guild
      */
-    async postLeaderboards(type) {
+    async postLeaderboard(guildId, type) {
         try {
-            const guildIds = await DataManager.getAllGuildIds();
-            let posted = 0;
+            const config = await DataManager.getConfig(guildId);
 
-            for (const guildId of guildIds) {
-                const config = await DataManager.getConfig(guildId);
-
-                if (!config.leaderboard_channel_id) {
-                    continue;
-                }
-
-                const users = await DataManager.getUsers(guildId);
-                const guild = this.client.guilds.cache.get(guildId);
-
-                if (!guild) {
-                    Logger.warn(`Guild ${guildId} not found in cache`);
-                    continue;
-                }
-
-                const embed = await LeaderboardUtils.generateLeaderboard(
-                    this.client,
-                    users,
-                    type,
-                    guild.name,
-                    'guild'
-                );
-
-                const channel = guild.channels.cache.get(config.leaderboard_channel_id);
-
-                if (channel) {
-                    await channel.send({ embeds: [embed] });
-                    Logger.success(`Posted ${type} leaderboard to ${guild.name}/#${channel.name}`);
-                    posted++;
-                } else {
-                    Logger.warn(`Leaderboard channel not found in guild ${guild.name}`);
-                }
+            if (!config.leaderboard_channel_id) {
+                return;
             }
 
-            Logger.success(`Posted ${type} leaderboards to ${posted} channels`);
+            const users = await DataManager.getUsers(guildId);
+            const guild = this.client.guilds.cache.get(guildId);
+
+            if (!guild) {
+                return;
+            }
+
+            const embed = await LeaderboardUtils.generateLeaderboard(
+                this.client,
+                users,
+                type,
+                guild.name,
+                'guild'
+            );
+
+            const channel = guild.channels.cache.get(config.leaderboard_channel_id);
+
+            if (channel) {
+                await channel.send({ embeds: [embed] });
+                Logger.success(`Posted ${type} leaderboard to ${guild.name}/#${channel.name}`);
+            }
         } catch (error) {
-            Logger.error(`Failed to post ${type} leaderboards`, error);
+            Logger.error(`Failed to post ${type} leaderboard for guild ${guildId}`, error);
         }
     }
 
@@ -147,7 +155,9 @@ class Scheduler {
      * Stop all scheduled tasks
      */
     stop() {
-        this.jobs.forEach(job => job.stop());
+        for (const [name, job] of this.jobs) {
+            job.stop();
+        }
         Logger.info('Scheduler stopped');
     }
 }
