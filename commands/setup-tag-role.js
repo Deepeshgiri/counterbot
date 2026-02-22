@@ -9,13 +9,7 @@ module.exports = {
         .addSubcommand(subcommand =>
             subcommand
                 .setName('set')
-                .setDescription('Set tag and role for auto-assignment')
-                .addStringOption(option =>
-                    option
-                        .setName('tag')
-                        .setDescription('Server tag/clan tag (e.g., [TAG])')
-                        .setRequired(true)
-                )
+                .setDescription('Set role for users with server tag')
                 .addRoleOption(option =>
                     option
                         .setName('role')
@@ -53,9 +47,17 @@ module.exports = {
     },
 
     async setTagRole(interaction) {
-        const tag = interaction.options.getString('tag');
         const role = interaction.options.getRole('role');
         const guildId = interaction.guild.id;
+        const guild = await interaction.guild.fetch();
+        
+        const serverTag = guild.vanityURLCode ? `[${guild.vanityURLCode.toUpperCase()}]` : null;
+        
+        if (!serverTag) {
+            return interaction.editReply({
+                content: '❌ This server does not have a vanity URL. Server tags require a vanity URL to be set.'
+            });
+        }
 
         const botMember = interaction.guild.members.me;
         if (role.position >= botMember.roles.highest.position) {
@@ -66,13 +68,13 @@ module.exports = {
 
         const config = await DataManager.getConfig(guildId);
         config.tag_role = {
-            tag: tag,
+            tag: serverTag,
             roleId: role.id
         };
         await DataManager.saveConfig(guildId, config);
 
         await interaction.editReply({
-            content: `✅ Tag-role configured!\n**Tag:** ${tag}\n**Role:** ${role}\n\nUsers with "${tag}" in their nickname will automatically get this role.`
+            content: `✅ Tag-role configured!\n**Server Tag:** ${serverTag}\n**Role:** ${role}\n\nUsers with "${serverTag}" in their nickname will automatically get this role.`
         });
     },
 
