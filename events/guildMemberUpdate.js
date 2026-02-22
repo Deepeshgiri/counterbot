@@ -16,28 +16,30 @@ module.exports = {
             const role = newMember.guild.roles.cache.get(roleId);
             if (!role) return;
 
-            // Fetch user with primary_guild field
-            const oldUser = await oldMember.user.fetch();
-            const newUser = await newMember.user.fetch();
-console.log('Old user primary guild:', oldUser.primaryGuild?.id);
-console.log('New user primary guild:', newUser.primaryGuild?.id);
-console.log('Guild ID:', guildId);
-console.log('Role ID:', roleId);
-console.log('User tags:', oldUser.tag, newUser.tag);
+            // Get guild's clan tag
+            const guild = await newMember.guild.fetch();
+            const guildTag = guild.clan?.tag;
+            
+            if (!guildTag) return;
 
-            const hadTag = oldUser.primaryGuild?.id === guildId;
-            const hasTag = newUser.primaryGuild?.id === guildId;
+            const oldNick = oldMember.nickname || oldMember.user.displayName;
+            const newNick = newMember.nickname || newMember.user.displayName;
+
+            // Check if nickname contains guild's tag in [TAG] format
+            const tagPattern = `[${guildTag}]`;
+            const hadTag = oldNick.includes(tagPattern);
+            const hasTag = newNick.includes(tagPattern);
 
             // Tag added → assign role
             if (!hadTag && hasTag && !newMember.roles.cache.has(roleId)) {
                 await newMember.roles.add(role);
-                Logger.success(`Assigned ${role.name} to ${newMember.user.tag} for wearing server tag`);
+                Logger.success(`Assigned ${role.name} to ${newMember.user.tag} for wearing server tag ${tagPattern}`);
             }
 
             // Tag removed → remove role
             if (hadTag && !hasTag && newMember.roles.cache.has(roleId)) {
                 await newMember.roles.remove(role);
-                Logger.success(`Removed ${role.name} from ${newMember.user.tag} for removing server tag`);
+                Logger.success(`Removed ${role.name} from ${newMember.user.tag} for removing server tag ${tagPattern}`);
             }
 
         } catch (error) {
