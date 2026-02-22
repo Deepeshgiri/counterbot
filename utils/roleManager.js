@@ -12,22 +12,78 @@ class RoleManager {
             const member = await guild.members.fetch(userId);
 
             if (!roleMappings[word]) {
-                return; // No role mappings for this word
+                return;
+            }
+
+            const mappings = roleMappings[word];
+            const sortedThresholds = Object.entries(mappings)
+                .map(([threshold, roleId]) => ({ threshold: parseInt(threshold), roleId }))
+                .sort((a, b) => b.threshold - a.threshold);
+
+            // Find highest threshold user qualifies for
+            let qualifiedRole = null;
+            for (const { threshold, roleId } of sortedThresholds) {
+                if (totalCount >= threshold) {
+                    qualifiedRole = { threshold, roleId };
+                    break;
+                }
+            }
+
+            // Assign qualified role if not already assigned
+            if (qualifiedRole && !member.roles.cache.has(qualifiedRole.roleId)) {
+                await this.assignRole(member, qualifiedRole.roleId, qualifiedRole.threshold);
+            }
+        } catch (error) {
+            Logger.error(`Failed to check/assign roles for user ${userId}`, error);
+        }
+    }
+
+    /**
+     * Remove roles from user when they no longer qualify
+     */
+    static async removeUnqualifiedRoles(guild, userId, totalCount, word, roleMappings) {
+        try {
+            const member = await guild.members.fetch(userId);
+
+            if (!roleMappings[word]) {
+                return;
             }
 
             const mappings = roleMappings[word];
 
-            // Find the highest threshold the user has reached
             for (const [threshold, roleId] of Object.entries(mappings)) {
                 const thresholdNum = parseInt(threshold);
 
-                if (totalCount === thresholdNum) {
-                    // User just hit this threshold exactly
-                    await this.assignRole(member, roleId, thresholdNum);
+                if (totalCount < thresholdNum && member.roles.cache.has(roleId)) {
+                    await this.removeRole(member, roleId, thresholdNum);
                 }
             }
         } catch (error) {
-            Logger.error(`Failed to check/assign roles for user ${userId}`, error);
+            Logger.error(`Failed to remove roles for user ${userId}`, error);
+        }
+    }
+
+    /**
+     * Remove all word-related roles from all users in guild
+     */
+    static async removeAllWordRoles(guild, word, roleMappings) {
+        try {
+            if (!roleMappings[word]) {
+                return;
+            }
+
+            const mappings = roleMappings[word];
+            const members = await guild.members.fetch();
+
+            for (const [, member] of members) {
+                for (const roleId of Object.values(mappings)) {
+                    if (member.roles.cache.has(roleId)) {
+                        await this.removeRole(member, roleId, 0);
+                    }
+                }
+            }
+        } catch (error) {
+            Logger.error(`Failed to remove all roles for word ${word}`, error);
         }
     }
 
@@ -66,6 +122,28 @@ class RoleManager {
             Logger.success(`Assigned role ${role.name} to ${member.user.tag} (threshold: ${threshold})`);
         } catch (error) {
             Logger.error(`Failed to assign role ${roleId}`, error);
+        }
+    }
+
+    /**
+     * Remove a role from a member
+     */
+    static async removeRole(member, roleId, threshold) {
+        try {
+            const role = member.guild.roles.cache.get(roleId);
+
+            if (!role) {
+                return;
+            }
+
+            if (!member.roles.cache.has(roleId)) {
+                return;
+            }
+
+            await member.roles.remove(role);
+            Logger.success(`Removed role ${role.name} from ${member.user.tag}`);
+        } catch (error) {
+            Logger.error(`Failed to remove role ${roleId}`, error);
         }
     }
 }

@@ -1,6 +1,7 @@
 const cron = require('node-cron');
 const DataManager = require('./dataManager');
 const LeaderboardUtils = require('./leaderboardUtils');
+const RoleManager = require('./roleManager');
 const Logger = require('./logger');
 
 /**
@@ -55,12 +56,42 @@ class Scheduler {
             const guildIds = await DataManager.getAllGuildIds();
 
             for (const guildId of guildIds) {
+                await this.removeRolesForReset(guildId, type);
                 await DataManager.resetCounts(guildId, type);
             }
 
             Logger.success(`Reset ${type} counts for ${guildIds.length} guilds`);
         } catch (error) {
             Logger.error(`Failed to reset ${type} counts`, error);
+        }
+    }
+
+    /**
+     * Remove roles from users when period resets
+     */
+    async removeRolesForReset(guildId, type) {
+        try {
+            const guild = this.client.guilds.cache.get(guildId);
+            if (!guild) return;
+
+            const config = await DataManager.getConfig(guildId);
+            const users = await DataManager.getUsers(guildId);
+
+            for (const user of Object.values(users)) {
+                for (const word of Object.keys(config.tracked_words)) {
+                    if (config.role_mappings && config.role_mappings[word]) {
+                        await RoleManager.removeUnqualifiedRoles(
+                            guild,
+                            user.discord_id,
+                            0,
+                            word,
+                            config.role_mappings
+                        );
+                    }
+                }
+            }
+        } catch (error) {
+            Logger.error(`Failed to remove roles for guild ${guildId}`, error);
         }
     }
 
