@@ -51,11 +51,12 @@ module.exports = {
         const guildId = interaction.guild.id;
         const guild = await interaction.guild.fetch();
         
-        const serverTag = guild.vanityURLCode ? `[${guild.vanityURLCode.toUpperCase()}]` : null;
+        // Check for clan/server tag in guild properties
+        const serverTag = guild.clan?.tag ? `[${guild.clan.tag}]` : null;
         
         if (!serverTag) {
             return interaction.editReply({
-                content: '❌ This server does not have a vanity URL. Server tags require a vanity URL to be set.'
+                content: '❌ This server does not have a server tag set. Please set a server tag in Server Settings → Overview → Server Tag.'
             });
         }
 
