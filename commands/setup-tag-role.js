@@ -9,13 +9,7 @@ module.exports = {
         .addSubcommand(subcommand =>
             subcommand
                 .setName('set')
-                .setDescription('Set role for users with a specific tag')
-                .addStringOption(option =>
-                    option
-                        .setName('tag')
-                        .setDescription('Tag to check in nickname (example: [ABC])')
-                        .setRequired(true)
-                )
+                .setDescription('Set role for users with server tag')
                 .addRoleOption(option =>
                     option
                         .setName('role')
@@ -53,15 +47,8 @@ module.exports = {
     },
 
     async setTagRole(interaction) {
-        const tag = interaction.options.getString('tag').trim();
         const role = interaction.options.getRole('role');
         const guildId = interaction.guild.id;
-
-        if (!tag) {
-            return interaction.editReply({
-                content: '❌ You must provide a valid tag.'
-            });
-        }
 
         const botMember = interaction.guild.members.me;
 
@@ -80,14 +67,13 @@ module.exports = {
         const config = await DataManager.getConfig(guildId);
 
         config.tag_role = {
-            tag,
             roleId: role.id
         };
 
         await DataManager.saveConfig(guildId, config);
 
         await interaction.editReply({
-            content: `✅ Tag-role configured!\n**Tag:** ${tag}\n**Role:** ${role}\n\nUsers with "${tag}" in their nickname will automatically get this role.`
+            content: `✅ Tag-role configured!\n**Role:** ${role}\n\nUsers with this server's tag in their profile will automatically get this role.`
         });
     },
 
@@ -120,7 +106,7 @@ module.exports = {
         }
 
         await interaction.editReply({
-            content: `📋 **Tag-Role Configuration:**\n**Tag:** ${config.tag_role.tag}\n**Role:** <@&${config.tag_role.roleId}>`
+            content: `📋 **Tag-Role Configuration:**\n**Role:** <@&${config.tag_role.roleId}>\n\nUsers with this server's tag will get this role.`
         });
     }
 };
